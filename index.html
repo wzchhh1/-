@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>移动端猜数字</title>
+    <style>
+        /* 移动端优先设计 */
+        :root {
+            --primary-color: 00a8ff;
+            --danger-color: ff4757;
+            --success-color: 2ed573;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft Yahei', sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: f1f2f6;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .game-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            margin: 20px auto;
+            max-width: 500px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin: 0 0 25px;
+            font-size: 1.8em;
+        }
+
+        guessInput {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid ddd;
+            border-radius: 10px;
+            margin: 15px 0;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+        }
+
+        guessInput:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        .button-group {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: 1fr 1fr;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.1s, opacity 0.3s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        guessBtn {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        resetBtn {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        attempts {
+            color: var(--danger-color);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* 手机横屏适配 */
+        @media (orientation: landscape) {
+            .game-container {
+                margin-top: 10vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎮 猜数字游戏</h1>
+        <input type="number" id="guessInput" 
+               placeholder="输入1-100的数字" 
+               min="1" max="100" 
+               inputmode="numeric"
+               autocomplete="off">
+        <div class="button-group">
+            <button id="guessBtn">猜！</button>
+            <button id="resetBtn">重玩</button>
+        </div>
+        <div id="message"></div>
+        <div style="margin-top: 20px;">
+            剩余次数：<span id="attempts">10</span>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态管理
+        let targetNumber, attemptsLeft;
+        const maxAttempts = 10;
+
+        // 元素缓存
+        const elements = {
+            input: document.getElementById('guessInput'),
+            message: document.getElementById('message'),
+            attempts: document.getElementById('attempts'),
+        };
+
+        // 游戏初始化
+        function initGame() {
+            targetNumber = Math.floor(Math.random() * 100) + 1;
+            attemptsLeft = maxAttempts;
+            elements.attempts.textContent = attemptsLeft;
+            elements.message.textContent = '';
+            elements.input.value = '';
+            elements.input.focus();
+        }
+
+        // 游戏逻辑处理
+        function handleGuess() {
+            if (attemptsLeft <= 0) return;
+
+            const userInput = elements.input.value.trim();
+            if (!userInput || isNaN(userInput)) {
+                showMessage('请输入有效数字！', 'error');
+                return;
+            }
+
+            const guess = parseInt(userInput);
+            if (guess < 1 || guess > 100) {
+                showMessage('请输入1-100之间的数字', 'error');
+                return;
+            }
+
+            attemptsLeft--;
+            elements.attempts.textContent = attemptsLeft;
+
+            if (guess === targetNumber) {
+                showMessage(`🎉 猜对了！答案就是 ${targetNumber}`, 'success');
+                setTimeout(initGame, 1500);
+                return;
+            }
+
+            const hint = guess > targetNumber ? '高了' : '低了';
+            showMessage(`${hint}！还剩 ${attemptsLeft} 次机会`, 'warning');
+
+            if (attemptsLeft <= 0) {
+                showMessage(`游戏结束！正确答案是 ${targetNumber}`, 'error');
+                setTimeout(initGame, 2000);
+            }
+        }
+
+        // 消息显示
+        function showMessage(text, type = 'info') {
+            elements.message.textContent = text;
+            elements.message.style.backgroundColor = {
+                error: 'ffe3e3',
+                warning: 'fff3e0',
+                success: 'e5f7e9',
+                info: 'e3f2fd'
+            }type;
+        }
+
+        // 事件绑定
+        function bindEvents() {
+            // 按钮事件
+            document.getElementById('guessBtn').addEventListener('click', handleGuess);
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                initGame();
+                showMessage('游戏已重置！', 'info');
+            });
+
+            // 触摸事件处理
+            document.getElementById('guessBtn').addEventListener('touchend', (e) => {
+                e.preventDefault(); // 阻止默认滚动行为
+                handleGuess();
+            });
+
+            // 键盘事件
+            elements.input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleGuess();
+            });
+        }
+
+        // 启动游戏
+        document.addEventListener('DOMContentLoaded', () => {
+            initGame();
+            bindEvents();
+        });
+    </script>
+</body>
+</html>
